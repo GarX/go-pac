@@ -187,6 +187,9 @@ func compileUnity(config *conf.UnityConfig, outfile string) (err error) {
 			}
 		} else {
 			err = os.Chdir("./GoPacPrj")
+			if err != nil {
+				return
+			}
 			err = compileXcode(config.Xcode, outfile)
 		}
 		return

@@ -6,4 +6,10 @@ use make to generate the binary file named 'go-pac'
 flag description
 -v verbose
 -f input json configuration file
--o output file 
+-o output file
+
+
+
+Some example json file is placed at directory json.
+
+Attribute 'Redevelopment' will give out a project directory instead of a .apk or .ipa file.
