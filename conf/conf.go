@@ -5,6 +5,7 @@ type Config struct {
 	Repository *string
 	Android    *AndroidConfig
 	Xcode      *XcodeConfig
+	Unity      *UnityConfig
 }
 
 //AndroidConfig contains some fields for Android
@@ -19,4 +20,11 @@ type AndroidConfig struct {
 type XcodeConfig struct {
 	Sign      *string
 	Provision *string
+}
+
+type UnityConfig struct {
+	Redevelopment    *bool
+	BundleIdentifier *string
+	Android          *AndroidConfig
+	Xcode            *XcodeConfig
 }

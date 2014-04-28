@@ -1,0 +1,9 @@
+{
+	"Repository" : "https://github.com/QQ1378028155/UnityTestCase01",
+	"Unity" : {
+		"Redevelopment" : true,
+		"BundleIdentifier" : "com.pinidea.Test",
+		"Xcode":{
+		}
+	}
+}

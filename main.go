@@ -1,8 +1,9 @@
 package main
 
 import "flag"
-import "github.com/QQ1378028155/go-pac/logger"
-import "github.com/QQ1378028155/go-pac/worker"
+import "os"
+import "github.com/GarX/go-pac/logger"
+import "github.com/GarX/go-pac/worker"
 
 var (
 	infile  = flag.String("f", "", "configuration file to input.")
@@ -13,6 +14,10 @@ var (
 func main() {
 	flag.Parse()
 	logger.Verbose = *verbose
+	if outfile == nil || *outfile == "" {
+		logger.Debug("Please specified the output file")
+		os.Exit(1)
+	}
 	err := worker.Run(*infile, *outfile)
 	if err != nil {
 		logger.Debug(err.Error())
