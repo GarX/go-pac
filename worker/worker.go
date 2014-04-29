@@ -67,7 +67,7 @@ func Run(filename, outfile string) (err error) {
 		err = errors.New("repository must be set")
 		return
 	}
-	err = fetchFromRemote(*config.Repository)
+	err = fetchFromRemote(config.Repository, config.Vcs)
 	if err != nil {
 		return
 	}
@@ -83,9 +83,23 @@ func Run(filename, outfile string) (err error) {
 	return
 }
 
+func changeProjectPath(projPath *string) error {
+	if projPath == nil || *projPath == "" {
+		return errors.New("projPath must be set")
+	}
+	if strings.HasPrefix(*projPath, "/") {
+		return errors.New("projectpath must be set as a releative path")
+	}
+	err := os.Chdir(*projPath)
+	return err
+}
+
 func compileUnity(config *conf.UnityConfig, outfile string) (err error) {
 	// find the *.unity file under the ./Assets recursively.
-
+	err = changeProjectPath(config.ProjectPath)
+	if err != nil {
+		return
+	}
 	assetsDir, err := os.Open("./Assets")
 	defer assetsDir.Close()
 	if err != nil {
@@ -272,6 +286,10 @@ func findRecursively(dir *os.File, reg *regexp.Regexp, currentwd string) (dirs, 
 func compileXcode(config *conf.XcodeConfig, outfile string) (err error) {
 	// find the *.xcodeproj file under the working directory
 	// if multiple xcodeproj file exists, it picks one of them.
+	err = changeProjectPath(config.ProjectPath)
+	if err != nil {
+		return
+	}
 	var wdnow string
 	wdnow, err = os.Getwd()
 	if err != nil {
@@ -393,6 +411,10 @@ func compileXcode(config *conf.XcodeConfig, outfile string) (err error) {
 func compileAndroid(config *conf.AndroidConfig, outfile string) (err error) {
 	var file *os.File
 
+	err = changeProjectPath(config.ProjectPath)
+	if err != nil {
+		return
+	}
 	// remove the old build
 	err = cmd.SyncCmd("ant", []string{"clean", "-Dsdk.dir=/usr/lib/android/sdk"})
 	if err != nil {
@@ -483,28 +505,65 @@ func compileAndroid(config *conf.AndroidConfig, outfile string) (err error) {
 
 // clone or pull the repo from remote
 // ATTENTION!!! : The working directory changed after the function is called
-func fetchFromRemote(repo string) (err error) {
+func fetchFromRemote(repo *string, vcs *string) (err error) {
+	if repo == nil {
+		err = errors.New("repository must be set")
+		return
+	}
+	if vcs == nil {
+		err = errors.New("vcs must be set")
+		return
+	}
+	if *vcs != "git" && *vcs != "hg" {
+		err = errors.New("invalid vcs is set")
+		return
+	}
 	logger.Debug("Home: " + home)
-	owner, dir, err := getRepoDir(repo)
+	owner, dir, err := getRepoDir(*repo)
 	if err != nil {
 		return
 	}
-	err = os.MkdirAll(home+"/Library/go-pac/"+owner+"/"+dir, 0755)
+	err = os.MkdirAll(home+"/Library/go-pac/"+*vcs+owner+"/"+dir, 0755)
 	if err != nil {
 		return
 	}
-	logger.Debug("Enter ~/Library/go-pac/" + owner + "/" + dir)
-	err = os.Chdir(home + "/Library/go-pac/" + owner + "/" + dir)
+	logger.Debug("Enter ~/Library/go-pac/" + *vcs + owner + "/" + dir)
+	err = os.Chdir(home + "/Library/go-pac/" + *vcs + owner + "/" + dir)
 	if err != nil {
 		return
 	}
-	err = cmd.SyncCmd("git", []string{"init"})
-	if err != nil {
-		return
-	}
-	err = cmd.SyncCmd("git", []string{"pull", repo})
-	if err != nil {
-		return
+
+	switch *vcs {
+	case "git":
+		err = cmd.SyncCmd("git", []string{"init"})
+		if err != nil {
+			return
+		}
+		cmd.SyncCmd("git", []string{"reset", "--hard", "HEAD"}) // checkout to the latest version to avoid the conflict. if it is a new repo without any content, the command will cause an error. it is no need to check the error
+
+		err = cmd.SyncCmd("git", []string{"clean", "-f"}) // clean the untracked files
+		if err != nil {
+			return
+		}
+		err = cmd.SyncCmd("git", []string{"pull", *repo})
+		if err != nil {
+			return
+		}
+	case "hg":
+		cmd.SyncCmd("hg", []string{"init"})                        // hg re-init will cause an error. no need for you to check the error.
+		err = cmd.SyncCmd("hg", []string{"revert", "-C", "--all"}) // revert all changes to avoid the conflict. no error if it is a new repo.
+		if err != nil {
+			return
+		}
+		err = cmd.SyncCmd("hg", []string{"purge"}) // clean the untracked files
+		if err != nil {
+			return
+		}
+		err = cmd.SyncCmd("hg", []string{"pull", *repo, "-u"}) // fetch from remote
+		if err != nil {
+			return
+		}
+
 	}
 	return nil
 }

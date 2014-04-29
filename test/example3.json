@@ -1,8 +1,0 @@
-{
-	"Repository" : "https://github.com/QQ1378028155/UnityTestCase01",
-	"Unity" : {
-		"BundleIdentifier" : "com.pinidea.Test0",
-		"Android":{
-		}
-	}
-}

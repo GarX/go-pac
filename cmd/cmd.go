@@ -13,7 +13,9 @@ func SyncCmd(name string, arg []string) error {
 	logger.Debug(name + " " + strings.Join(arg, " "))
 	cmd := exec.Command(name, arg...)
 	b, err := cmd.Output()
-	logger.Debug(string(b))
+	if string(b) != "" {
+		logger.Debug(string(b))
+	}
 	if err != nil {
 		return err
 	}
